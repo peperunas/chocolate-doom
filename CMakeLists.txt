@@ -1,4 +1,4 @@
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 cmake_minimum_required(VERSION 3.7.2)
 project("Chocolate Doom" VERSION 3.0.0 LANGUAGES C)
@@ -44,7 +44,11 @@ if(PNG_FOUND)
     set(HAVE_LIBPNG TRUE)
 endif()
 
-find_package(m)
+# if LLVMSupport is in the same build tree, it already includes m as a system dependency
+if (NOT TARGET LLVMSupport)
+	message("Looking for m")
+	find_package(m)
+endif()
 
 include(CheckSymbolExists)
 include(CheckIncludeFile)
