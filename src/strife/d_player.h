@@ -16,10 +16,8 @@
 //
 //
 
-
 #ifndef __D_PLAYER__
 #define __D_PLAYER__
-
 
 // The player data structure depends on a number
 // of other structs: items (internal inventory),
@@ -39,51 +37,44 @@
 
 #include "net_defs.h"
 
-
-
-
 //
 // Player states.
 //
-typedef enum
-{
-    // Playing or camping.
-    PST_LIVE,
-    // Dead on the ground, view follows killer.
-    PST_DEAD,
-    // Ready to restart/respawn???
-    PST_REBORN		
+typedef enum {
+  // Playing or camping.
+  PST_LIVE,
+  // Dead on the ground, view follows killer.
+  PST_DEAD,
+  // Ready to restart/respawn???
+  PST_REBORN
 
 } playerstate_t;
-
 
 //
 // Player internal flags, for cheats and debug.
 //
-typedef enum
-{
-    // No clipping, walk through barriers.
-    CF_NOCLIP		= 1,
-    // No damage, no health loss.
-    CF_GODMODE		= 2,
-    // Not really a cheat, just a debug aid.
-    CF_NOMOMENTUM	= 4,
-    // villsa [STRIFE] new cheat
-    // set when on fire and disable inventory
-    CF_ONFIRE           = 8,
-    // villsa [STRIFE] new cheat
-    // auto-use medkits
-    CF_AUTOHEALTH       = 16
+typedef enum {
+  // No clipping, walk through barriers.
+  CF_NOCLIP = 1,
+  // No damage, no health loss.
+  CF_GODMODE = 2,
+  // Not really a cheat, just a debug aid.
+  CF_NOMOMENTUM = 4,
+  // villsa [STRIFE] new cheat
+  // set when on fire and disable inventory
+  CF_ONFIRE = 8,
+  // villsa [STRIFE] new cheat
+  // auto-use medkits
+  CF_AUTOHEALTH = 16
 
 } cheat_t;
 
 // haleyjd 08/30/10: [STRIFE]
 // Player Inventory Item Structure
-typedef struct inventory_s
-{
-    int sprite; // a sprite number
-    int type;   // a thing type
-    int amount; // amount being carried
+typedef struct inventory_s {
+  int sprite; // a sprite number
+  int type;   // a thing type
+  int amount; // amount being carried
 } inventory_t;
 
 #define NUMINVENTORY 32
@@ -94,156 +85,152 @@ typedef struct inventory_s
 // haleyjd 08/30/10: [STRIFE]
 // * Transformed to match binary structure layout.
 //
-typedef struct player_s
-{
-    mobj_t*		mo;
-    playerstate_t	playerstate;
-    ticcmd_t		cmd;
+typedef struct player_s {
+  mobj_t *      mo;
+  playerstate_t playerstate;
+  ticcmd_t      cmd;
 
-    // Determine POV,
-    //  including viewpoint bobbing during movement.
-    // Focal origin above r.z
-    fixed_t		viewz;
-    // Base height above floor for viewz.
-    fixed_t		viewheight;
-    // Bob/squat speed.
-    fixed_t         	deltaviewheight;
-    // bounded/scaled total momentum.
-    fixed_t         	bob;	
+  // Determine POV,
+  //  including viewpoint bobbing during movement.
+  // Focal origin above r.z
+  fixed_t viewz;
+  // Base height above floor for viewz.
+  fixed_t viewheight;
+  // Bob/squat speed.
+  fixed_t deltaviewheight;
+  // bounded/scaled total momentum.
+  fixed_t bob;
 
-    // This is only used between levels,
-    // mo->health is used during levels.
-    int			health;	
-    short		armorpoints; // [STRIFE] Changed to short
-    // Armor type is 0-2.
-    short		armortype;   // [STRIFE] Changed to short
+  // This is only used between levels,
+  // mo->health is used during levels.
+  int   health;
+  short armorpoints; // [STRIFE] Changed to short
+  // Armor type is 0-2.
+  short armortype; // [STRIFE] Changed to short
 
-    // Power ups. invinc and invis are tic counters.
-    int			powers[NUMPOWERS];
+  // Power ups. invinc and invis are tic counters.
+  int powers[NUMPOWERS];
 
-    // [STRIFE] Additions:
-    int			sigiltype;               // Type of Sigil carried
-    int			nukagecount;             // Nukage exposure counter
-    int			questflags;              // Quest bit flags
-    int			pitch;                   // Up/down look angle
-    boolean		centerview;              // True if view should be centered
-    inventory_t		inventory[NUMINVENTORY]; // Player inventory items
-    boolean		st_update;               // If true, update status bar
-    short		numinventory;            // Num. active inventory items
-    short		inventorycursor;         // Selected inventory item
-    short		accuracy;                // Accuracy stat
-    short		stamina;                 // Stamina stat
-    
-    boolean		cards[NUMCARDS];
-    boolean		backpack;
+  // [STRIFE] Additions:
+  int         sigiltype;               // Type of Sigil carried
+  int         nukagecount;             // Nukage exposure counter
+  int         questflags;              // Quest bit flags
+  int         pitch;                   // Up/down look angle
+  boolean     centerview;              // True if view should be centered
+  inventory_t inventory[NUMINVENTORY]; // Player inventory items
+  boolean     st_update;               // If true, update status bar
+  short       numinventory;            // Num. active inventory items
+  short       inventorycursor;         // Selected inventory item
+  short       accuracy;                // Accuracy stat
+  short       stamina;                 // Stamina stat
 
-    // True if button down last tic.
-    int			attackdown;
-    int			usedown;
-    int			inventorydown;   // [STRIFE] Use inventory item
-    
-    // Frags, kills of other players.
-    int			frags[MAXPLAYERS];
-    weapontype_t	readyweapon;
-    
-    // Is wp_nochange if not changing.
-    weapontype_t	pendingweapon;
+  boolean cards[NUMCARDS];
+  boolean backpack;
 
-    boolean		weaponowned[NUMWEAPONS];
-    int			ammo[NUMAMMO];
-    int			maxammo[NUMAMMO];
+  // True if button down last tic.
+  int attackdown;
+  int usedown;
+  int inventorydown; // [STRIFE] Use inventory item
 
-    // Bit flags, for cheats and debug.
-    // See cheat_t, above.
-    int			cheats;
+  // Frags, kills of other players.
+  int          frags[MAXPLAYERS];
+  weapontype_t readyweapon;
 
-    // Refired shots are less accurate.
-    int			refire;
+  // Is wp_nochange if not changing.
+  weapontype_t pendingweapon;
 
-     // For intermission stats.
-    short		killcount;    // [STRIFE] Changed to short
-    //int		itemcount;    // [STRIFE] Eliminated these.
-    //int		secretcount;
+  boolean weaponowned[NUMWEAPONS];
+  int     ammo[NUMAMMO];
+  int     maxammo[NUMAMMO];
 
-    // Hint messages.
-    const char		*message;
-    
-    // For screen flashing (red or bright).
-    int			damagecount;
-    int			bonuscount;
+  // Bit flags, for cheats and debug.
+  // See cheat_t, above.
+  int cheats;
 
-    // Who did damage (NULL for floors/ceilings).
-    mobj_t*		attacker;
-    
-    // So gun flashes light up areas.
-    int			extralight;
+  // Refired shots are less accurate.
+  int refire;
 
-    // Current PLAYPAL, ???
-    //  can be set to REDCOLORMAP for pain, etc.
-    int			fixedcolormap;
+  // For intermission stats.
+  short killcount; // [STRIFE] Changed to short
+  // int		itemcount;    // [STRIFE] Eliminated these.
+  // int		secretcount;
 
-    // Player skin colorshift,
-    //  0-3 for which color to draw player.
-    //int			colormap; [STRIFE] no such? or did it become the below?
+  // Hint messages.
+  const char *message;
 
-    // [STRIFE] For use of teleport beacons
-    short		allegiance;  
+  // For screen flashing (red or bright).
+  int damagecount;
+  int bonuscount;
 
-    // Overlay view sprites (gun, etc).
-    pspdef_t		psprites[NUMPSPRITES];
+  // Who did damage (NULL for floors/ceilings).
+  mobj_t *attacker;
 
-    // [STRIFE] Inefficient means of tracking automap state on all maps
-    boolean		mapstate[40];
+  // So gun flashes light up areas.
+  int extralight;
 
-    // True if secret level has been done.
-    //boolean		didsecret;   [STRIFE] Removed this.
+  // Current PLAYPAL, ???
+  //  can be set to REDCOLORMAP for pain, etc.
+  int fixedcolormap;
+
+  // Player skin colorshift,
+  //  0-3 for which color to draw player.
+  // int			colormap; [STRIFE] no such? or did it become the
+  // below?
+
+  // [STRIFE] For use of teleport beacons
+  short allegiance;
+
+  // Overlay view sprites (gun, etc).
+  pspdef_t psprites[NUMPSPRITES];
+
+  // [STRIFE] Inefficient means of tracking automap state on all maps
+  boolean mapstate[40];
+
+  // True if secret level has been done.
+  // boolean		didsecret;   [STRIFE] Removed this.
 
 } player_t;
-
 
 //
 // INTERMISSION
 // Structure passed e.g. to WI_Start(wb)
 //
-typedef struct
-{
-    boolean	in;	// whether the player is in game
-    
-    // Player stats, kills, collected items etc.
-    int		skills;
-    int		sitems;
-    int		ssecret;
-    int		stime; 
-    int		frags[4];
-    int		score;	// current score on entry, modified on return
-  
+typedef struct {
+  boolean in; // whether the player is in game
+
+  // Player stats, kills, collected items etc.
+  int skills;
+  int sitems;
+  int ssecret;
+  int stime;
+  int frags[4];
+  int score; // current score on entry, modified on return
+
 } wbplayerstruct_t;
 
-typedef struct
-{
-    int		epsd;	// episode # (0-2)
+typedef struct {
+  int epsd; // episode # (0-2)
 
-    // if true, splash the secret level
-    boolean	didsecret;
-    
-    // previous and next levels, origin 0
-    int		last;
-    int		next;	
-    
-    int		maxkills;
-    int		maxitems;
-    int		maxsecret;
-    int		maxfrags;
+  // if true, splash the secret level
+  boolean didsecret;
 
-    // the par time
-    int		partime;
-    
-    // index of this player in game
-    int		pnum;	
+  // previous and next levels, origin 0
+  int last;
+  int next;
 
-    wbplayerstruct_t	plyr[MAXPLAYERS];
+  int maxkills;
+  int maxitems;
+  int maxsecret;
+  int maxfrags;
+
+  // the par time
+  int partime;
+
+  // index of this player in game
+  int pnum;
+
+  wbplayerstruct_t plyr[MAXPLAYERS];
 
 } wbstartstruct_t;
-
 
 #endif

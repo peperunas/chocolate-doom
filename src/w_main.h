@@ -21,10 +21,9 @@
 #include "d_mode.h"
 
 boolean W_ParseCommandLine(void);
-void W_CheckCorrectIWAD(GameMission_t mission);
+void    W_CheckCorrectIWAD(GameMission_t mission);
 
 // Autoload all .wad files from the given directory:
 void W_AutoLoadWADs(const char *path);
 
 #endif /* #ifndef W_MAIN_H */
-

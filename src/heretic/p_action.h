@@ -148,4 +148,3 @@ void A_MntrFloorFire();
 void A_ESound();
 
 #endif /* #ifndef HERETIC_P_ACTION_H */
-

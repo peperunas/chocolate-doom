@@ -26,4 +26,3 @@ void SetPlayerNameDefault(void);
 void BindMultiplayerVariables(void);
 
 #endif /* #ifndef SETUP_MULTIPLAYER_H */
-

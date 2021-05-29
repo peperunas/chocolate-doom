@@ -19,12 +19,9 @@
 #include "deh_defs.h"
 #include "deh_main.h"
 
-const char *deh_signatures[] =
-{
-    "Patch File for SeHackEd v0.4",
-    "Patch File for SeHackEd v0.3",
-    NULL
-};
+const char *deh_signatures[] = {"Patch File for SeHackEd v0.4",
+                                "Patch File for SeHackEd v0.3",
+                                NULL};
 
 // deh_ammo.c:
 extern deh_section_t deh_section_ammo;
@@ -49,17 +46,13 @@ extern deh_section_t deh_section_weapon;
 // List of section types:
 //
 
-deh_section_t *deh_section_types[] =
-{
-    &deh_section_ammo,
-    &deh_section_cheat,
-    &deh_section_frame,
-    &deh_section_misc,
-    &deh_section_pointer,
-    &deh_section_sound,
-    &deh_section_text,
-    &deh_section_thing,
-    &deh_section_weapon,
-    NULL
-};
-
+deh_section_t *deh_section_types[] = {&deh_section_ammo,
+                                      &deh_section_cheat,
+                                      &deh_section_frame,
+                                      &deh_section_misc,
+                                      &deh_section_pointer,
+                                      &deh_section_sound,
+                                      &deh_section_text,
+                                      &deh_section_thing,
+                                      &deh_section_weapon,
+                                      NULL};

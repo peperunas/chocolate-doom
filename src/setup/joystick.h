@@ -21,4 +21,3 @@ void ConfigJoystick(void *widget, void *user_data);
 void BindJoystickVariables(void);
 
 #endif /* #ifndef SETUP_JOYSTICK_H */
-

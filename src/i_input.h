@@ -16,7 +16,6 @@
 //    System-specific keyboard/mouse input.
 //
 
-
 #ifndef __I_INPUT__
 #define __I_INPUT__
 
@@ -25,7 +24,7 @@
 #define MAX_MOUSE_BUTTONS 8
 
 extern float mouse_acceleration;
-extern int mouse_threshold;
+extern int   mouse_threshold;
 
 void I_BindInputVariables(void);
 void I_ReadMouse(void);

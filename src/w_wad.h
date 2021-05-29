@@ -16,7 +16,6 @@
 //	WAD I/O functions.
 //
 
-
 #ifndef __W_WAD__
 #define __W_WAD__
 
@@ -24,7 +23,6 @@
 
 #include "doomtype.h"
 #include "w_file.h"
-
 
 //
 // TYPES
@@ -35,31 +33,29 @@
 //
 
 typedef struct lumpinfo_s lumpinfo_t;
-typedef int lumpindex_t;
+typedef int               lumpindex_t;
 
-struct lumpinfo_s
-{
-    char	name[8];
-    wad_file_t *wad_file;
-    int		position;
-    int		size;
-    void       *cache;
+struct lumpinfo_s {
+  char        name[8];
+  wad_file_t *wad_file;
+  int         position;
+  int         size;
+  void *      cache;
 
-    // Used for hash table lookups
-    lumpindex_t next;
+  // Used for hash table lookups
+  lumpindex_t next;
 };
-
 
 extern lumpinfo_t **lumpinfo;
 extern unsigned int numlumps;
 
 wad_file_t *W_AddFile(const char *filename);
-void W_Reload(void);
+void        W_Reload(void);
 
 lumpindex_t W_CheckNumForName(const char *name);
 lumpindex_t W_GetNumForName(const char *name);
 
-int W_LumpLength(lumpindex_t lump);
+int  W_LumpLength(lumpindex_t lump);
 void W_ReadLump(lumpindex_t lump, void *dest);
 
 void *W_CacheLumpNum(lumpindex_t lump, int tag);
@@ -73,6 +69,6 @@ void W_ReleaseLumpNum(lumpindex_t lump);
 void W_ReleaseLumpName(const char *name);
 
 const char *W_WadNameForLump(const lumpinfo_t *lump);
-boolean W_IsIWADLump(const lumpinfo_t *lump);
+boolean     W_IsIWADLump(const lumpinfo_t *lump);
 
 #endif
