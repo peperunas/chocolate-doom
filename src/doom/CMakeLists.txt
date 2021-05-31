@@ -119,18 +119,9 @@ list(TRANSFORM DOOM_ABSPATH_HEADERS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 add_library(doom STATIC ${DOOM_SOURCES} ${DOOM_HEADERS})
 add_library(doom-ropfuscated STATIC ${DOOM_ROP_ASM_SOURCES} ${DOOM_HEADERS})
 
-# Get SDL's include directories
-get_target_property(SDL_INCLUDES SDL2::SDL2 INCLUDE_DIRECTORIES)
-get_target_property(SDLMIXER_INCLUDES SDL2::mixer INCLUDE_DIRECTORIES)
-get_target_property(SDLNET_INCLUDES SDL2::net INCLUDE_DIRECTORIES)
-
-# Construct the compiler string for the include directories.
-foreach(dir ${SDL_INCLUDES} ${SDLMIXER_INCLUDES} ${SDLNET_INCLUDES})
-  string(APPEND SDL_INCLUDES_STRING "-I${dir} ")
-endforeach()
-
-set(ROPF_IR_FLAGS
-    "${ROPF_IR_FLAGS};-I${SDL2_INCLUDE_DIR};-I${PROJECT_BINARY_DIR};-I${PROJECT_SOURCE_DIR}/src;-I${PROJECT_SOURCE_DIR}/src/doom;${INCLUDES_DIRECTIVE}"
+# add includes directories
+set(IR_FLAGS
+    "-I${SDL2_INCLUDE_DIR};-I${PROJECT_BINARY_DIR};-I${PROJECT_SOURCE_DIR}/src;-I${PROJECT_SOURCE_DIR}/src/doom"
 )
 
 # obfuscate each source file
@@ -138,7 +129,7 @@ foreach(source ${DOOM_SOURCES})
   get_filename_component(source_name ${source} NAME_WE)
 
   generate_ropfuscated_asm(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/${source} OUTNAME
-                           ${source_name}-ropfuscated)
+                           ${source_name}-ropfuscated IRFLAGS ${IR_FLAGS})
 endforeach()
 
 target_include_directories(doom PRIVATE "../"
