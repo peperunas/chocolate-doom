@@ -121,7 +121,12 @@ set(DEHACKED_SOURCE_FILES
 set(SOURCE_FILES ${COMMON_SOURCE_FILES} ${GAME_SOURCE_FILES})
 set(SOURCE_FILES_WITH_DEH ${SOURCE_FILES} ${DEHACKED_SOURCE_FILES})
 
-set(EXTRA_LIBS SDL2::SDL2main SDL2::SDL2 SDL2::mixer SDL2::net textscreen pcsound opl rop)
+set(EXTRA_LIBS SDL2::SDL2main SDL2::SDL2 SDL2::mixer SDL2::net textscreen pcsound opl)
+
+if(NOT USE_LIBC)
+    set(EXTRA_LIBS ${EXTRA_LIBS} rop)
+endif()
+
 if(SAMPLERATE_FOUND)
     list(APPEND EXTRA_LIBS samplerate::samplerate)
 endif()
@@ -149,7 +154,7 @@ if(MSVC)
                           LINK_FLAGS "/MANIFEST:NO")
 endif()
 
-if(WIN32)
+if(WIN32)   
     add_executable("${PROGRAM_PREFIX}heretic" WIN32 ${SOURCE_FILES_WITH_DEH} "${CMAKE_CURRENT_BINARY_DIR}/resource.rc")
 else()
     add_executable("${PROGRAM_PREFIX}heretic" ${SOURCE_FILES_WITH_DEH})
