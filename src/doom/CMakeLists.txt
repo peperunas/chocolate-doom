@@ -58,6 +58,13 @@ set(DOOM_SOURCES
     st_stuff.c
     wi_stuff.c)
 
+# append -ropfuscated to source names
+string(REGEX REPLACE "([\\w]*).c($|;)" "\\1-ropfuscated.c\\2" DOOM_ROP_SOURCES
+                     "${DOOM_SOURCES}")
+# append -ropfuscated to source names and using .s extension
+string(REGEX REPLACE "([\\w]*).c($|;)" "\\1-ropfuscated.s\\2"
+                     DOOM_ROP_ASM_SOURCES "${DOOM_SOURCES}")
+
 set(DOOM_HEADERS
     am_map.h
     deh_misc.h
@@ -105,8 +112,45 @@ set(DOOM_HEADERS
     st_stuff.h
     wi_stuff.h)
 
+# append -ropfuscated to source names and using .s extension
+set(DOOM_ABSPATH_HEADERS ${DOOM_HEADERS})
+list(TRANSFORM DOOM_ABSPATH_HEADERS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+
 add_library(doom STATIC ${DOOM_SOURCES} ${DOOM_HEADERS})
+add_library(doom-ropfuscated STATIC ${DOOM_ROP_ASM_SOURCES} ${DOOM_HEADERS})
+
+# Get SDL's include directories
+get_target_property(SDL_INCLUDES SDL2::SDL2 INCLUDE_DIRECTORIES)
+get_target_property(SDLMIXER_INCLUDES SDL2::mixer INCLUDE_DIRECTORIES)
+get_target_property(SDLNET_INCLUDES SDL2::net INCLUDE_DIRECTORIES)
+
+# Construct the compiler string for the include directories.
+foreach(dir ${SDL_INCLUDES} ${SDLMIXER_INCLUDES} ${SDLNET_INCLUDES})
+  string(APPEND SDL_INCLUDES_STRING "-I${dir} ")
+endforeach()
+
+set(ROPF_IR_FLAGS
+    "${ROPF_IR_FLAGS};-I${SDL2_INCLUDE_DIR};-I${PROJECT_BINARY_DIR};-I${PROJECT_SOURCE_DIR}/src;-I${PROJECT_SOURCE_DIR}/src/doom;${INCLUDES_DIRECTIVE}"
+)
+
+# obfuscate each source file
+foreach(source ${DOOM_SOURCES})
+  get_filename_component(source_name ${source} NAME_WE)
+
+  generate_ropfuscated_asm(
+    SOURCE
+    ${CMAKE_CURRENT_SOURCE_DIR}/${source}
+    OUTNAME
+    ${source_name}-ropfuscated
+    IRFLAGS
+    ${ROPF_IR_FLAGS}
+    ASMFLAGS
+    ${ROPF_ASM_FLAGS})
+endforeach()
 
 target_include_directories(doom PRIVATE "../"
                                         "${CMAKE_CURRENT_BINARY_DIR}/../../")
+target_include_directories(doom-ropfuscated
+                           PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
 target_link_libraries(doom SDL2::SDL2 SDL2::mixer SDL2::net)
+target_link_libraries(doom-ropfuscated SDL2::SDL2 SDL2::mixer SDL2::net)
