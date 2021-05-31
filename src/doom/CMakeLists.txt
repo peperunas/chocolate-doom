@@ -137,15 +137,8 @@ set(ROPF_IR_FLAGS
 foreach(source ${DOOM_SOURCES})
   get_filename_component(source_name ${source} NAME_WE)
 
-  generate_ropfuscated_asm(
-    SOURCE
-    ${CMAKE_CURRENT_SOURCE_DIR}/${source}
-    OUTNAME
-    ${source_name}-ropfuscated
-    IRFLAGS
-    ${ROPF_IR_FLAGS}
-    ASMFLAGS
-    ${ROPF_ASM_FLAGS})
+  generate_ropfuscated_asm(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/${source} OUTNAME
+                           ${source_name}-ropfuscated)
 endforeach()
 
 target_include_directories(doom PRIVATE "../"
