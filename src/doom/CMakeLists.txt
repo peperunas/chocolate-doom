@@ -58,13 +58,6 @@ set(DOOM_SOURCES
     st_stuff.c
     wi_stuff.c)
 
-# append -ropfuscated to source names
-string(REGEX REPLACE "([\\w]*).c($|;)" "\\1-ropfuscated.c\\2" DOOM_ROP_SOURCES
-                     "${DOOM_SOURCES}")
-# append -ropfuscated to source names and using .s extension
-string(REGEX REPLACE "([\\w]*).c($|;)" "\\1-ropfuscated.s\\2"
-                     DOOM_ROP_ASM_SOURCES "${DOOM_SOURCES}")
-
 set(DOOM_HEADERS
     am_map.h
     deh_misc.h
@@ -117,24 +110,49 @@ set(DOOM_ABSPATH_HEADERS ${DOOM_HEADERS})
 list(TRANSFORM DOOM_ABSPATH_HEADERS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 add_library(doom STATIC ${DOOM_SOURCES} ${DOOM_HEADERS})
-add_library(doom-ropfuscated STATIC ${DOOM_ROP_ASM_SOURCES} ${DOOM_HEADERS})
+
+# create a library for each ropfuscator config
+foreach(config_file ${ROPF_CONFIGURATION_FILES})
+  get_filename_component(config_name ${config_file} NAME_WE)
+  set(ropfuscated_doom_library "doom-ropfuscated-${config_name}")
+
+  # append -ropfuscated to source names and using .s extension
+  string(REGEX REPLACE "([\\w]*).c($|;)" "\\1-ropfuscated-${config_name}.s\\2"
+                       DOOM_ROP_ASM_SOURCES "${DOOM_SOURCES}")
+
+  add_library(${ropfuscated_doom_library} STATIC ${DOOM_ROP_ASM_SOURCES}
+                                                 ${DOOM_HEADERS})
+
+  target_link_libraries(${ropfuscated_doom_library} SDL2::SDL2 SDL2::mixer
+                        SDL2::net)
+  target_include_directories(${ropfuscated_doom_library}
+                             PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
+endforeach()
 
 # add includes directories
 set(IR_FLAGS
     "-I${SDL2_INCLUDE_DIR};-I${PROJECT_BINARY_DIR};-I${PROJECT_SOURCE_DIR}/src;-I${PROJECT_SOURCE_DIR}/src/doom"
 )
 
-# obfuscate each source file
+# obfuscate every source file for every ropfuscator config
 foreach(source ${DOOM_SOURCES})
   get_filename_component(source_name ${source} NAME_WE)
 
-  generate_ropfuscated_asm(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/${source} OUTNAME
-                           ${source_name}-ropfuscated IRFLAGS ${IR_FLAGS})
+  foreach(config_file ${ROPF_CONFIGURATION_FILES})
+    get_filename_component(config_name ${config_file} NAME_WE)
+
+    generate_ropfuscated_asm(
+      SOURCE
+      ${CMAKE_CURRENT_SOURCE_DIR}/${source}
+      OUTNAME
+      ${source_name}-ropfuscated-${config_name}
+      IRFLAGS
+      ${IR_FLAGS}
+      OBF_CONFIG
+      ${config_file})
+  endforeach()
 endforeach()
 
 target_include_directories(doom PRIVATE "../"
                                         "${CMAKE_CURRENT_BINARY_DIR}/../../")
-target_include_directories(doom-ropfuscated
-                           PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
 target_link_libraries(doom SDL2::SDL2 SDL2::mixer SDL2::net)
-target_link_libraries(doom-ropfuscated SDL2::SDL2 SDL2::mixer SDL2::net)
