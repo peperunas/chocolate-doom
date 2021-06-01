@@ -134,27 +134,47 @@ if(PNG_FOUND)
     list(APPEND EXTRA_LIBS PNG::PNG)
 endif()
 
+add_custom_target(ropfuscator-dooms)
+
 if(WIN32)
-    add_executable("${PROGRAM_PREFIX}doom" WIN32 ${SOURCE_FILES_WITH_DEH} "${CMAKE_CURRENT_BINARY_DIR}/resource.rc")
+  add_executable(
+    "${PROGRAM_PREFIX}doom" WIN32 ${SOURCE_FILES_WITH_DEH}
+                                  "${CMAKE_CURRENT_BINARY_DIR}/resource.rc")
 else()
-    add_executable("${PROGRAM_PREFIX}doom" ${SOURCE_FILES_WITH_DEH})
-    add_executable("${PROGRAM_PREFIX}doom-ropfuscated" ${SOURCE_FILES_WITH_DEH})
+  # Vanilla Doom
+  add_executable("${PROGRAM_PREFIX}doom" ${SOURCE_FILES_WITH_DEH})
+
+  # ROPfuscator Doom(s)
+  foreach(config ${ROPF_CONFIGURATION_FILES})
+    get_filename_component(config_name ${config} NAME_WE)
+
+    add_executable("${PROGRAM_PREFIX}doom-ropfuscated-${config_name}"
+                   ${SOURCE_FILES_WITH_DEH})
+    add_dependencies(ropfuscator-dooms
+                     "${PROGRAM_PREFIX}doom-ropfuscated-${config_name}")
+  endforeach()
 endif()
 
 # Vanilla Doom
 target_include_directories("${PROGRAM_PREFIX}doom" PRIVATE ${GAME_INCLUDE_DIRS})
 target_link_libraries("${PROGRAM_PREFIX}doom" doom ${EXTRA_LIBS})
 
-# ROPfuscator Doom
-target_include_directories("${PROGRAM_PREFIX}doom-ropfuscated" PRIVATE ${GAME_INCLUDE_DIRS})
-target_link_libraries("${PROGRAM_PREFIX}doom-ropfuscated" doom-ropfuscated ${EXTRA_LIBS})
+# ROPfuscator Doom(s)
+foreach(config ${ROPF_CONFIGURATION_FILES})
+  get_filename_component(config_name ${config} NAME_WE)
+
+  target_include_directories("${PROGRAM_PREFIX}doom-ropfuscated-${config_name}"
+                             PRIVATE ${GAME_INCLUDE_DIRS})
+  target_link_libraries("${PROGRAM_PREFIX}doom-ropfuscated-${config_name}"
+                        doom-ropfuscated-${config_name} ${EXTRA_LIBS})
+endforeach()
 
 if(MSVC)
     set_target_properties("${PROGRAM_PREFIX}doom" PROPERTIES
                           LINK_FLAGS "/MANIFEST:NO")
 endif()
 
-if(WIN32)   
+if(WIN32)
     add_executable("${PROGRAM_PREFIX}heretic" WIN32 ${SOURCE_FILES_WITH_DEH} "${CMAKE_CURRENT_BINARY_DIR}/resource.rc")
 else()
     add_executable("${PROGRAM_PREFIX}heretic" ${SOURCE_FILES_WITH_DEH})
