@@ -111,22 +111,38 @@ list(TRANSFORM DOOM_ABSPATH_HEADERS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 add_library(doom STATIC ${DOOM_SOURCES} ${DOOM_HEADERS})
 
-# create a library for each ropfuscator config
+# create a library for each ropfuscator config and library
 foreach(config_file ${ROPF_CONFIGURATION_FILES})
-  get_filename_component(config_name ${config_file} NAME_WE)
-  set(ropfuscated_doom_library "doom-ropfuscated-${config_name}")
+  # create a library for each ropfuscator config
+  foreach(library ${ROPFUSCATOR_LIBRARIES})
+    get_filename_component(config_name ${config_file} NAME_WE)
+    get_filename_component(libname ${library} NAME_WE)
 
-  # append -ropfuscated to source names and using .s extension
-  string(REGEX REPLACE "([\\w]*).c($|;)" "\\1-ropfuscated-${config_name}.s\\2"
-                       DOOM_ROP_ASM_SOURCES "${DOOM_SOURCES}")
+    # ugly but needed because the generator expressions are not expanded at this
+    # stage
+    if(library STREQUAL $<TARGET_FILE:rop>)
+      set(libname "librop")
+    endif()
 
-  add_library(${ropfuscated_doom_library} STATIC ${DOOM_ROP_ASM_SOURCES}
-                                                 ${DOOM_HEADERS})
+    set(ropfuscated_doom_library
+        "doom-ropfuscated-${config_name}-${libname}")
 
-  target_link_libraries(${ropfuscated_doom_library} SDL2::SDL2 SDL2::mixer
-                        SDL2::net)
-  target_include_directories(${ropfuscated_doom_library}
-                             PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
+    # append -ropfuscated to source names and using .s extension
+    string(
+      REGEX
+      REPLACE "([\\w]*).c($|;)"
+              "\\1-ropfuscated-${config_name}-${libname}.s\\2"
+              DOOM_ROP_ASM_SOURCES "${DOOM_SOURCES}")
+
+    add_library(${ropfuscated_doom_library} STATIC ${DOOM_ROP_ASM_SOURCES}
+                                                   ${DOOM_HEADERS})
+
+    target_link_libraries(${ropfuscated_doom_library} SDL2::SDL2 SDL2::mixer
+                          SDL2::net)
+    target_include_directories(
+      ${ropfuscated_doom_library} PRIVATE "../"
+                                          "${CMAKE_CURRENT_BINARY_DIR}/../../")
+  endforeach()
 endforeach()
 
 # add includes directories
@@ -134,22 +150,33 @@ set(IR_FLAGS
     "-I${SDL2_INCLUDE_DIR};-I${PROJECT_BINARY_DIR};-I${PROJECT_SOURCE_DIR}/src;-I${PROJECT_SOURCE_DIR}/src/doom"
 )
 
-# obfuscate every source file for every ropfuscator config
+# obfuscate every source file for every ropfuscator config and library
 foreach(source ${DOOM_SOURCES})
   get_filename_component(source_name ${source} NAME_WE)
 
   foreach(config_file ${ROPF_CONFIGURATION_FILES})
-    get_filename_component(config_name ${config_file} NAME_WE)
+    foreach(library ${ROPFUSCATOR_LIBRARIES})
+      get_filename_component(config_name ${config_file} NAME_WE)
+      get_filename_component(libname ${library} NAME_WE)
 
-    generate_ropfuscated_asm(
-      SOURCE
-      ${CMAKE_CURRENT_SOURCE_DIR}/${source}
-      OUTNAME
-      ${source_name}-ropfuscated-${config_name}
-      IRFLAGS
-      ${IR_FLAGS}
-      OBF_CONFIG
-      ${config_file})
+      # ugly but needed because the generator expressions are not expanded at
+      # this stage
+      if(library STREQUAL $<TARGET_FILE:rop>)
+        set(libname "librop")
+      endif()
+
+      generate_ropfuscated_asm(
+        SOURCE
+        ${CMAKE_CURRENT_SOURCE_DIR}/${source}
+        OUTNAME
+        ${source_name}-ropfuscated-${config_name}-${libname}
+        IRFLAGS
+        ${IR_FLAGS}
+        OBF_CONFIG
+        ${config_file}
+        GADGET_LIB
+        ${library})
+    endforeach()
   endforeach()
 endforeach()
 

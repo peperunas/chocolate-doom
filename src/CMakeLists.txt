@@ -220,13 +220,25 @@ else()
 
   # ROPfuscator Doom(s)
   foreach(config ${ROPF_CONFIGURATION_FILES})
-    get_filename_component(config_name ${config} NAME_WE)
+    foreach(library ${ROPFUSCATOR_LIBRARIES})
+      get_filename_component(config_name ${config} NAME_WE)
+      get_filename_component(libname ${library} NAME_WE)
 
-    add_executable("${PROGRAM_PREFIX}doom-ropfuscated-${config_name}"
-                   ${SOURCE_FILES_WITH_DEH})
-    add_dependencies(ropfuscator-dooms
-                     "${PROGRAM_PREFIX}doom-ropfuscated-${config_name}")
+      # ugly but needed because the generator expressions are not expanded at
+      # this stage
+      if(library STREQUAL $<TARGET_FILE:rop>)
+        set(libname "librop")
+      endif()
+
+      add_executable(
+        "${PROGRAM_PREFIX}doom-ropfuscated-${config_name}-${libname}"
+        ${SOURCE_FILES_WITH_DEH})
+      add_dependencies(
+        ropfuscator-dooms
+        "${PROGRAM_PREFIX}doom-ropfuscated-${config_name}-${libname}")
+    endforeach()
   endforeach()
+
 endif()
 
 # Vanilla Doom
@@ -235,12 +247,23 @@ target_link_libraries("${PROGRAM_PREFIX}doom" doom ${EXTRA_LIBS})
 
 # ROPfuscator Doom(s)
 foreach(config ${ROPF_CONFIGURATION_FILES})
-  get_filename_component(config_name ${config} NAME_WE)
+  foreach(library ${ROPFUSCATOR_LIBRARIES})
+    get_filename_component(config_name ${config} NAME_WE)
+    get_filename_component(libname ${library} NAME_WE)
 
-  target_include_directories("${PROGRAM_PREFIX}doom-ropfuscated-${config_name}"
-                             PRIVATE ${GAME_INCLUDE_DIRS})
-  target_link_libraries("${PROGRAM_PREFIX}doom-ropfuscated-${config_name}"
-                        doom-ropfuscated-${config_name} ${EXTRA_LIBS})
+    # ugly but needed because the generator expressions are not expanded at this
+    # stage
+    if(library STREQUAL $<TARGET_FILE:rop>)
+      set(libname "librop")
+    endif()
+
+    target_include_directories(
+      "${PROGRAM_PREFIX}doom-ropfuscated-${config_name}-${libname}"
+      PRIVATE ${GAME_INCLUDE_DIRS})
+    target_link_libraries(
+      "${PROGRAM_PREFIX}doom-ropfuscated-${config_name}-${libname}"
+      doom-ropfuscated-${config_name}-${libname} ${EXTRA_LIBS} ${library})
+  endforeach()
 endforeach()
 
 if(MSVC)
