@@ -209,6 +209,7 @@ if(PNG_FOUND)
 endif()
 
 add_custom_target(ropfuscator-dooms)
+add_dependencies(ropfuscator-games ropfuscator-dooms)
 
 if(WIN32)
   add_executable(
@@ -217,6 +218,7 @@ if(WIN32)
 else()
   # Vanilla Doom
   add_executable("${PROGRAM_PREFIX}doom" ${SOURCE_FILES_WITH_DEH})
+  add_dependencies(ropfuscator-games "${PROGRAM_PREFIX}doom")
 
   # ROPfuscator Doom(s)
   foreach(config ${ROPF_CONFIGURATION_FILES})
