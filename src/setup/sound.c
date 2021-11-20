@@ -36,7 +36,8 @@ typedef enum {
 
 static const char *opltype_strings[] = {"OPL2", "OPL3"};
 
-static const char *cfg_extension[] = {"cfg", NULL};
+static const char *cfg_extension[] = { "cfg", NULL };
+static const char *sf_extension[] = { "sf2", "sf3", NULL };
 
 // Config file variables:
 
@@ -60,8 +61,9 @@ static float libsamplerate_scale = 0.65;
 
 static char *music_pack_path   = NULL;
 static char *timidity_cfg_path = NULL;
-static char *gus_patch_path    = NULL;
-static int   gus_ram_kb        = 1024;
+static char *fluidsynth_sf_path = NULL;
+static char *gus_patch_path = NULL;
+static int gus_ram_kb = 1024;
 
 // DOS specific variables: these are unused but should be maintained
 // so that the config file can be shared between chocolate
@@ -105,155 +107,149 @@ static void OpenMusicPackDir(TXT_UNCAST_ARG(widget), TXT_UNCAST_ARG(unused)) {
   }
 }
 
-void ConfigSound(TXT_UNCAST_ARG(widget), void *user_data) {
-  txt_window_t *       window;
-  txt_window_action_t *music_action;
+void ConfigSound(TXT_UNCAST_ARG(widget), void *user_data)
+{
+    txt_window_t *window;
+    txt_window_action_t *music_action;
 
-  // Build the window
+    // Build the window
 
-  window = TXT_NewWindow("Sound configuration");
-  TXT_SetWindowHelpURL(window, WINDOW_HELP_URL);
+    window = TXT_NewWindow("Sound configuration");
+    TXT_SetWindowHelpURL(window, WINDOW_HELP_URL);
 
-  TXT_SetColumnWidths(window, 40);
-  TXT_SetWindowPosition(window,
-                        TXT_HORIZ_CENTER,
-                        TXT_VERT_TOP,
-                        TXT_SCREEN_W / 2,
-                        3);
+    TXT_SetColumnWidths(window, 40);
+    TXT_SetWindowPosition(window, TXT_HORIZ_CENTER, TXT_VERT_TOP,
+                                  TXT_SCREEN_W / 2, 3);
 
-  music_action = TXT_NewWindowAction('m', "Music Packs");
-  TXT_SetWindowAction(window, TXT_HORIZ_CENTER, music_action);
-  TXT_SignalConnect(music_action, "pressed", OpenMusicPackDir, NULL);
+    music_action = TXT_NewWindowAction('m', "Music Packs");
+    TXT_SetWindowAction(window, TXT_HORIZ_CENTER, music_action);
+    TXT_SignalConnect(music_action, "pressed", OpenMusicPackDir, NULL);
 
-  TXT_AddWidgets(
-      window,
-      TXT_NewSeparator("Sound effects"),
-      TXT_NewRadioButton("Disabled", &snd_sfxdevice, SNDDEVICE_NONE),
-      TXT_If(gamemission == doom,
-             TXT_NewRadioButton("PC speaker effects",
-                                &snd_sfxdevice,
-                                SNDDEVICE_PCSPEAKER)),
-      TXT_NewRadioButton("Digital sound effects", &snd_sfxdevice, SNDDEVICE_SB),
-      TXT_If(gamemission == doom || gamemission == heretic ||
-                 gamemission == hexen,
-             TXT_NewConditional(
-                 &snd_sfxdevice,
-                 SNDDEVICE_SB,
-                 TXT_NewHorizBox(
-                     TXT_NewStrut(4, 0),
-                     TXT_NewCheckBox("Pitch-shifted sounds", &snd_pitchshift),
-                     NULL))),
-      TXT_If(gamemission == strife,
-             TXT_NewConditional(
-                 &snd_sfxdevice,
-                 SNDDEVICE_SB,
-                 TXT_NewHorizBox(
-                     TXT_NewStrut(4, 0),
-                     TXT_NewCheckBox("Show text with voices", &show_talk),
-                     NULL))),
+    TXT_AddWidgets(window,
+        TXT_NewSeparator("Sound effects"),
+        TXT_NewRadioButton("Disabled", &snd_sfxdevice, SNDDEVICE_NONE),
+        TXT_If(gamemission == doom,
+            TXT_NewRadioButton("PC speaker effects", &snd_sfxdevice,
+                               SNDDEVICE_PCSPEAKER)),
+        TXT_NewRadioButton("Digital sound effects",
+                           &snd_sfxdevice,
+                           SNDDEVICE_SB),
+        TXT_If(gamemission == doom || gamemission == heretic
+            || gamemission == hexen,
+            TXT_NewConditional(&snd_sfxdevice, SNDDEVICE_SB,
+                TXT_NewHorizBox(
+                    TXT_NewStrut(4, 0),
+                    TXT_NewCheckBox("Pitch-shifted sounds", &snd_pitchshift),
+                    NULL))),
+        TXT_If(gamemission == strife,
+            TXT_NewConditional(&snd_sfxdevice, SNDDEVICE_SB,
+                TXT_NewHorizBox(
+                    TXT_NewStrut(4, 0),
+                    TXT_NewCheckBox("Show text with voices", &show_talk),
+                    NULL))),
 
-      TXT_NewSeparator("Music"),
-      TXT_NewRadioButton("Disabled", &snd_musicdevice, SNDDEVICE_NONE),
+        TXT_NewSeparator("Music"),
+        TXT_NewRadioButton("Disabled", &snd_musicdevice, SNDDEVICE_NONE),
 
-      TXT_NewRadioButton("OPL (Adlib/Soundblaster)",
-                         &snd_musicdevice,
-                         SNDDEVICE_SB),
-      TXT_NewConditional(&snd_musicdevice,
-                         SNDDEVICE_SB,
-                         TXT_NewHorizBox(TXT_NewStrut(4, 0),
-                                         TXT_NewLabel("Chip type: "),
-                                         OPLTypeSelector(),
-                                         NULL)),
+        TXT_NewRadioButton("OPL (Adlib/Soundblaster)", &snd_musicdevice,
+                           SNDDEVICE_SB),
+        TXT_NewConditional(&snd_musicdevice, SNDDEVICE_SB,
+            TXT_NewHorizBox(
+                TXT_NewStrut(4, 0),
+                TXT_NewLabel("Chip type: "),
+                OPLTypeSelector(),
+                NULL)),
 
-      TXT_NewRadioButton("GUS (emulated)", &snd_musicdevice, SNDDEVICE_GUS),
-      TXT_NewConditional(
-          &snd_musicdevice,
-          SNDDEVICE_GUS,
-          TXT_MakeTable(
-              2,
-              TXT_NewStrut(4, 0),
-              TXT_NewLabel("Path to patch files: "),
-              TXT_NewStrut(4, 0),
-              TXT_NewFileSelector(&gus_patch_path,
-                                  34,
-                                  "Select directory containing GUS patches",
-                                  TXT_DIRECTORY),
-              NULL)),
+        TXT_NewRadioButton("GUS (emulated)", &snd_musicdevice, SNDDEVICE_GUS),
+        TXT_NewConditional(&snd_musicdevice, SNDDEVICE_GUS,
+            TXT_MakeTable(2,
+                TXT_NewStrut(4, 0),
+                TXT_NewLabel("Path to patch files: "),
+                TXT_NewStrut(4, 0),
+                TXT_NewFileSelector(&gus_patch_path, 34,
+                                    "Select directory containing GUS patches",
+                                    TXT_DIRECTORY),
+                NULL)),
 
-      TXT_NewRadioButton("Native MIDI", &snd_musicdevice, SNDDEVICE_GENMIDI),
-      TXT_NewConditional(
-          &snd_musicdevice,
-          SNDDEVICE_GENMIDI,
-          TXT_MakeTable(2,
-                        TXT_NewStrut(4, 0),
-                        TXT_NewLabel("Timidity configuration file: "),
-                        TXT_NewStrut(4, 0),
-                        TXT_NewFileSelector(&timidity_cfg_path,
-                                            34,
-                                            "Select Timidity config file",
-                                            cfg_extension),
-                        NULL)),
-      NULL);
+        TXT_NewRadioButton("Native MIDI", &snd_musicdevice, SNDDEVICE_GENMIDI),
+        TXT_NewConditional(&snd_musicdevice, SNDDEVICE_GENMIDI,
+            TXT_MakeTable(2,
+                TXT_NewStrut(4, 0),
+                TXT_NewLabel("Timidity configuration file: "),
+                TXT_NewStrut(4, 0),
+                TXT_NewFileSelector(&timidity_cfg_path, 34,
+                                    "Select Timidity config file",
+                                    cfg_extension),
+                TXT_NewStrut(4, 0),
+                TXT_NewLabel("FluidSynth soundfont file: "),
+                TXT_NewStrut(4, 0),
+                TXT_NewFileSelector(&fluidsynth_sf_path, 34,
+                                    "Select FluidSynth soundfont file",
+                                    sf_extension),
+                NULL)),
+        NULL);
 }
 
-void BindSoundVariables(void) {
-  M_BindIntVariable("snd_sfxdevice", &snd_sfxdevice);
-  M_BindIntVariable("snd_musicdevice", &snd_musicdevice);
-  M_BindIntVariable("snd_channels", &numChannels);
-  M_BindIntVariable("snd_samplerate", &snd_samplerate);
-  M_BindIntVariable("sfx_volume", &sfxVolume);
-  M_BindIntVariable("music_volume", &musicVolume);
+void BindSoundVariables(void)
+{
+    M_BindIntVariable("snd_sfxdevice",            &snd_sfxdevice);
+    M_BindIntVariable("snd_musicdevice",          &snd_musicdevice);
+    M_BindIntVariable("snd_channels",             &numChannels);
+    M_BindIntVariable("snd_samplerate",           &snd_samplerate);
+    M_BindIntVariable("sfx_volume",               &sfxVolume);
+    M_BindIntVariable("music_volume",             &musicVolume);
 
-  M_BindIntVariable("use_libsamplerate", &use_libsamplerate);
-  M_BindFloatVariable("libsamplerate_scale", &libsamplerate_scale);
+    M_BindIntVariable("use_libsamplerate",        &use_libsamplerate);
+    M_BindFloatVariable("libsamplerate_scale",    &libsamplerate_scale);
 
-  M_BindIntVariable("gus_ram_kb", &gus_ram_kb);
-  M_BindStringVariable("gus_patch_path", &gus_patch_path);
-  M_BindStringVariable("music_pack_path", &music_pack_path);
-  M_BindStringVariable("timidity_cfg_path", &timidity_cfg_path);
+    M_BindIntVariable("gus_ram_kb",               &gus_ram_kb);
+    M_BindStringVariable("gus_patch_path",        &gus_patch_path);
+    M_BindStringVariable("music_pack_path",     &music_pack_path);
+    M_BindStringVariable("timidity_cfg_path",     &timidity_cfg_path);
+    M_BindStringVariable("fluidsynth_sf_path",    &fluidsynth_sf_path);
 
-  M_BindIntVariable("snd_sbport", &snd_sbport);
-  M_BindIntVariable("snd_sbirq", &snd_sbirq);
-  M_BindIntVariable("snd_sbdma", &snd_sbdma);
-  M_BindIntVariable("snd_mport", &snd_mport);
-  M_BindIntVariable("snd_maxslicetime_ms", &snd_maxslicetime_ms);
-  M_BindStringVariable("snd_musiccmd", &snd_musiccmd);
-  M_BindStringVariable("snd_dmxoption", &snd_dmxoption);
+    M_BindIntVariable("snd_sbport",               &snd_sbport);
+    M_BindIntVariable("snd_sbirq",                &snd_sbirq);
+    M_BindIntVariable("snd_sbdma",                &snd_sbdma);
+    M_BindIntVariable("snd_mport",                &snd_mport);
+    M_BindIntVariable("snd_maxslicetime_ms",      &snd_maxslicetime_ms);
+    M_BindStringVariable("snd_musiccmd",          &snd_musiccmd);
+    M_BindStringVariable("snd_dmxoption",         &snd_dmxoption);
 
-  M_BindIntVariable("snd_cachesize", &snd_cachesize);
-  M_BindIntVariable("opl_io_port", &opl_io_port);
+    M_BindIntVariable("snd_cachesize",            &snd_cachesize);
+    M_BindIntVariable("opl_io_port",              &opl_io_port);
 
-  M_BindIntVariable("snd_pitchshift", &snd_pitchshift);
+    M_BindIntVariable("snd_pitchshift",           &snd_pitchshift);
 
-  if (gamemission == strife) {
-    M_BindIntVariable("voice_volume", &voiceVolume);
-    M_BindIntVariable("show_talk", &show_talk);
-  }
+    if (gamemission == strife)
+    {
+        M_BindIntVariable("voice_volume",         &voiceVolume);
+        M_BindIntVariable("show_talk",            &show_talk);
+    }
 
-  music_pack_path   = M_StringDuplicate("");
-  timidity_cfg_path = M_StringDuplicate("");
-  gus_patch_path    = M_StringDuplicate("");
+    music_pack_path = M_StringDuplicate("");
+    timidity_cfg_path = M_StringDuplicate("");
+    gus_patch_path = M_StringDuplicate("");
+    fluidsynth_sf_path = M_StringDuplicate("");
 
-  // All versions of Heretic and Hexen did pitch-shifting.
-  // Most versions of Doom did not and Strife never did.
-  snd_pitchshift = gamemission == heretic || gamemission == hexen;
+    // All versions of Heretic and Hexen did pitch-shifting.
+    // Most versions of Doom did not and Strife never did.
+    snd_pitchshift = gamemission == heretic || gamemission == hexen;
 
-  // Default sound volumes - different games use different values.
+    // Default sound volumes - different games use different values.
 
-  switch (gamemission) {
-  case doom:
-  default:
-    sfxVolume   = 8;
-    musicVolume = 8;
-    break;
-  case heretic:
-  case hexen:
-    sfxVolume   = 10;
-    musicVolume = 10;
-    break;
-  case strife:
-    sfxVolume   = 8;
-    musicVolume = 13;
-    break;
-  }
+    switch (gamemission)
+    {
+        case doom:
+        default:
+            sfxVolume = 8;  musicVolume = 8;
+            break;
+        case heretic:
+        case hexen:
+            sfxVolume = 10; musicVolume = 10;
+            break;
+        case strife:
+            sfxVolume = 8;  musicVolume = 13;
+            break;
+    }
 }

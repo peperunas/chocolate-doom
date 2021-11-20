@@ -25,7 +25,6 @@
 #include "SDL_mixer.h"
 
 #include "i_glob.h"
-#include "i_midipipe.h"
 
 #include "config.h"
 #include "doomtype.h"

@@ -169,17 +169,23 @@ static boolean IsChexQuest(const iwad_t *iwad) {
   return !strcmp(iwad->name, "chex.wad");
 }
 
-static void AddWADs(execute_context_t *exec) {
-  int have_wads = 0;
-  int i;
+static void AddWADs(execute_context_t *exec)
+{
+    int have_wads = 0;
+    int i;
+ 
+    for (i=0; i<NUM_WADS; ++i)
+    {
+        if (wads[i] != NULL && strlen(wads[i]) > 0)
+        {
+            if (!have_wads)
+            {
+                AddCmdLineParameter(exec, "-file");
+                have_wads = 1;
+            }
 
-  for (i = 0; i < NUM_WADS; ++i) {
-    if (wads[i] != NULL && strlen(wads[i]) > 0) {
-      if (!have_wads) {
-        AddCmdLineParameter(exec, "-file");
-      }
-
-      AddCmdLineParameter(exec, "\"%s\"", wads[i]);
+            AddCmdLineParameter(exec, "\"%s\"", wads[i]);
+        }
     }
   }
 }
@@ -348,45 +354,87 @@ static void CloseLevelSelectDialog(TXT_UNCAST_ARG(button),
   TXT_CloseWindow(window);
 }
 
-static void LevelSelectDialog(TXT_UNCAST_ARG(widget),
-                              TXT_UNCAST_ARG(user_data)) {
-  txt_window_t *window;
-  txt_button_t *button;
-  const iwad_t *iwad;
-  char          buf[10];
-  int           episodes;
-  intptr_t      x, y;
-  intptr_t      l;
-  int           i;
+static void LevelSelectDialog(TXT_UNCAST_ARG(widget), TXT_UNCAST_ARG(user_data))
+{
+    txt_window_t *window;
+    txt_button_t *button;
+    const iwad_t *iwad;
+    char buf[10];
+    int episodes;
+    int x, y;
+    int l;
+    int i;
 
-  window = TXT_NewWindow("Select level");
-  iwad   = GetCurrentIWAD();
+    window = TXT_NewWindow("Select level");
+    iwad = GetCurrentIWAD();
 
-  if (warptype == WARP_ExMy) {
-    episodes = D_GetNumEpisodes(iwad->mission, iwad->mode);
-    TXT_SetTableColumns(window, episodes);
+    if (warptype == WARP_ExMy)
+    {
+        episodes = D_GetNumEpisodes(iwad->mission, iwad->mode);
+        TXT_SetTableColumns(window, episodes);
 
-    // ExMy levels
+        // ExMy levels
 
-    for (y = 1; y < 10; ++y) {
-      for (x = 1; x <= episodes; ++x) {
-        if (IsChexQuest(iwad) && (x > 1 || y > 5)) {
-          continue;
+        for (y=1; y<10; ++y)
+        {
+            for (x=1; x<=episodes; ++x)
+            {
+                if (IsChexQuest(iwad) && (x > 1 || y > 5))
+                {
+                    continue;
+                }
+
+                if (!D_ValidEpisodeMap(iwad->mission, iwad->mode, x, y))
+                {
+                    TXT_AddWidget(window, NULL);
+                    continue;
+                }
+
+                M_snprintf(buf, sizeof(buf),
+                           " E%dM%d ", x, y);
+                button = TXT_NewButton(buf);
+                TXT_SignalConnect(button, "pressed",
+                                  SetExMyWarp, (void *) (intptr_t) (x * 10 + y));
+                TXT_SignalConnect(button, "pressed",
+                                  CloseLevelSelectDialog, window);
+                TXT_AddWidget(window, button);
+
+                if (warpepisode == x && warpmap == y)
+                {
+                    TXT_SelectWidget(window, button);
+                }
+            }
         }
+    }
+    else
+    {
+        TXT_SetTableColumns(window, 6);
 
-        if (!D_ValidEpisodeMap(iwad->mission, iwad->mode, x, y)) {
-          TXT_AddWidget(window, NULL);
-          continue;
-        }
+        for (i=0; i<60; ++i)
+        {
+            x = i % 6;
+            y = i / 6;
 
-        M_snprintf(buf, sizeof(buf), " E%" PRIiPTR "M%" PRIiPTR " ", x, y);
-        button = TXT_NewButton(buf);
-        TXT_SignalConnect(button, "pressed", SetExMyWarp, (void *)(x * 10 + y));
-        TXT_SignalConnect(button, "pressed", CloseLevelSelectDialog, window);
-        TXT_AddWidget(window, button);
+            l = x * 10 + y + 1;
 
-        if (warpepisode == x && warpmap == y) {
-          TXT_SelectWidget(window, button);
+            if (!D_ValidEpisodeMap(iwad->mission, iwad->mode, 1, l))
+            {
+                TXT_AddWidget(window, NULL);
+                continue;
+            }
+
+            M_snprintf(buf, sizeof(buf), " MAP%02d ", l);
+            button = TXT_NewButton(buf);
+            TXT_SignalConnect(button, "pressed", 
+                              SetMAPxyWarp, (void *) (intptr_t) l);
+            TXT_SignalConnect(button, "pressed",
+                              CloseLevelSelectDialog, window);
+            TXT_AddWidget(window, button);
+
+            if (warpmap == l)
+            {
+                TXT_SelectWidget(window, button);
+            }
         }
       }
     }

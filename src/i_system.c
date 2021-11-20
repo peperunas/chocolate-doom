@@ -311,9 +311,10 @@ void *I_Realloc(void *ptr, size_t size) {
 
   new_ptr = realloc(ptr, size);
 
-  if (size != 0 && new_ptr == NULL) {
-    I_Error("I_Realloc: failed on reallocation of %" PRIuPTR " bytes", size);
-  }
+    if (size != 0 && new_ptr == NULL)
+    {
+        I_Error ("I_Realloc: failed on reallocation of %zu bytes", size);
+    }
 
   return new_ptr;
 }

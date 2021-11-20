@@ -376,9 +376,11 @@ char *M_StringDuplicate(const char *orig) {
 
   result = strdup(orig);
 
-  if (result == NULL) {
-    I_Error("Failed to duplicate string (length %" PRIuPTR ")\n", strlen(orig));
-  }
+    if (result == NULL)
+    {
+        I_Error("Failed to duplicate string (length %zu)\n",
+                strlen(orig));
+    }
 
   return result;
 }
