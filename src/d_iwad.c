@@ -69,14 +69,16 @@ boolean D_IsIWADName(const char *name) {
 #define MAX_IWAD_DIRS 128
 
 static boolean iwad_dirs_built = false;
-static char *  iwad_dirs[MAX_IWAD_DIRS];
-static int     num_iwad_dirs = 0;
+static const char *iwad_dirs[MAX_IWAD_DIRS];
+static int num_iwad_dirs = 0;
 
-static void AddIWADDir(char *dir) {
-  if (num_iwad_dirs < MAX_IWAD_DIRS) {
-    iwad_dirs[num_iwad_dirs] = dir;
-    ++num_iwad_dirs;
-  }
+static void AddIWADDir(const char *dir)
+{
+    if (num_iwad_dirs < MAX_IWAD_DIRS)
+    {
+        iwad_dirs[num_iwad_dirs] = dir;
+        ++num_iwad_dirs;
+    }
 }
 
 // This is Windows-specific code that automatically finds the location
@@ -585,57 +587,62 @@ static void AddIWADPath(const char *path, const char *suffix) {
 // using standard environment variables. See the XDG Base Directory
 // Specification:
 // <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>
-static void AddXdgDirs(void) {
-  char *env, *tmp_env;
+static void AddXdgDirs(void)
+{
+    const char *env;
+    char *tmp_env;
 
-  // Quote:
-  // > $XDG_DATA_HOME defines the base directory relative to which
-  // > user specific data files should be stored. If $XDG_DATA_HOME
-  // > is either not set or empty, a default equal to
-  // > $HOME/.local/share should be used.
-  env     = getenv("XDG_DATA_HOME");
-  tmp_env = NULL;
+    // Quote:
+    // > $XDG_DATA_HOME defines the base directory relative to which
+    // > user specific data files should be stored. If $XDG_DATA_HOME
+    // > is either not set or empty, a default equal to
+    // > $HOME/.local/share should be used.
+    env = getenv("XDG_DATA_HOME");
+    tmp_env = NULL;
 
-  if (env == NULL) {
-    const char *homedir = getenv("HOME");
-    if (homedir == NULL) {
-      homedir = "/";
+    if (env == NULL)
+    {
+        const char *homedir = getenv("HOME");
+        if (homedir == NULL)
+        {
+            homedir = "/";
+        }
+
+        tmp_env = M_StringJoin(homedir, "/.local/share", NULL);
+        env = tmp_env;
     }
 
-    tmp_env = M_StringJoin(homedir, "/.local/share", NULL);
-    env     = tmp_env;
-  }
+    // We support $XDG_DATA_HOME/games/doom (which will usually be
+    // ~/.local/share/games/doom) as a user-writeable extension to
+    // the usual /usr/share/games/doom location.
+    AddIWADDir(M_StringJoin(env, "/games/doom", NULL));
+    free(tmp_env);
 
-  // We support $XDG_DATA_HOME/games/doom (which will usually be
-  // ~/.local/share/games/doom) as a user-writeable extension to
-  // the usual /usr/share/games/doom location.
-  AddIWADDir(M_StringJoin(env, "/games/doom", NULL));
-  free(tmp_env);
+    // Quote:
+    // > $XDG_DATA_DIRS defines the preference-ordered set of base
+    // > directories to search for data files in addition to the
+    // > $XDG_DATA_HOME base directory. The directories in $XDG_DATA_DIRS
+    // > should be seperated with a colon ':'.
+    // >
+    // > If $XDG_DATA_DIRS is either not set or empty, a value equal to
+    // > /usr/local/share/:/usr/share/ should be used.
+    env = getenv("XDG_DATA_DIRS");
+    if (env == NULL)
+    {
+        // (Trailing / omitted from paths, as it is added below)
+        env = "/usr/local/share:/usr/share";
+    }
 
-  // Quote:
-  // > $XDG_DATA_DIRS defines the preference-ordered set of base
-  // > directories to search for data files in addition to the
-  // > $XDG_DATA_HOME base directory. The directories in $XDG_DATA_DIRS
-  // > should be seperated with a colon ':'.
-  // >
-  // > If $XDG_DATA_DIRS is either not set or empty, a value equal to
-  // > /usr/local/share/:/usr/share/ should be used.
-  env = getenv("XDG_DATA_DIRS");
-  if (env == NULL) {
-    // (Trailing / omitted from paths, as it is added below)
-    env = "/usr/local/share:/usr/share";
-  }
+    // The "standard" location for IWADs on Unix that is supported by most
+    // source ports is /usr/share/games/doom - we support this through the
+    // XDG_DATA_DIRS mechanism, through which it can be overridden.
+    AddIWADPath(env, "/games/doom");
+    AddIWADPath(env, "/doom");
 
-  // The "standard" location for IWADs on Unix that is supported by most
-  // source ports is /usr/share/games/doom - we support this through the
-  // XDG_DATA_DIRS mechanism, through which it can be overridden.
-  AddIWADPath(env, "/games/doom");
-  AddIWADPath(env, "/doom");
-
-  // The convention set by RBDOOM-3-BFG is to install Doom 3: BFG
-  // Edition into this directory, under which includes the Doom
-  // Classic WADs.
-  AddIWADPath(env, "/games/doom3bfg/base/wads");
+    // The convention set by RBDOOM-3-BFG is to install Doom 3: BFG
+    // Edition into this directory, under which includes the Doom
+    // Classic WADs.
+    AddIWADPath(env, "/games/doom3bfg/base/wads");
 }
 
 #ifndef __MACOSX__
@@ -644,25 +651,28 @@ static void AddXdgDirs(void) {
 // could parse *.vdf files to more accurately detect installation
 // locations, but the defaults are likely to be good enough for just
 // about everyone.
-static void AddSteamDirs(void) {
-  char *homedir, *steampath;
+static void AddSteamDirs(void)
+{
+    const char *homedir;
+    char *steampath;
 
-  homedir = getenv("HOME");
-  if (homedir == NULL) {
-    homedir = "/";
-  }
-  steampath = M_StringJoin(homedir, "/.steam/root/steamapps/common", NULL);
+    homedir = getenv("HOME");
+    if (homedir == NULL)
+    {
+        homedir = "/";
+    }
+    steampath = M_StringJoin(homedir, "/.steam/root/steamapps/common", NULL);
 
-  AddIWADPath(steampath, "/Doom 2/base");
-  AddIWADPath(steampath, "/Master Levels of Doom/doom2");
-  AddIWADPath(steampath, "/Ultimate Doom/base");
-  AddIWADPath(steampath, "/Final Doom/base");
-  AddIWADPath(steampath, "/DOOM 3 BFG Edition/base/wads");
-  AddIWADPath(steampath, "/Heretic Shadow of the Serpent Riders/base");
-  AddIWADPath(steampath, "/Hexen/base");
-  AddIWADPath(steampath, "/Hexen Deathkings of the Dark Citadel/base");
-  AddIWADPath(steampath, "/Strife");
-  free(steampath);
+    AddIWADPath(steampath, "/Doom 2/base");
+    AddIWADPath(steampath, "/Master Levels of Doom/doom2");
+    AddIWADPath(steampath, "/Ultimate Doom/base");
+    AddIWADPath(steampath, "/Final Doom/base");
+    AddIWADPath(steampath, "/DOOM 3 BFG Edition/base/wads");
+    AddIWADPath(steampath, "/Heretic Shadow of the Serpent Riders/base");
+    AddIWADPath(steampath, "/Hexen/base");
+    AddIWADPath(steampath, "/Hexen Deathkings of the Dark Citadel/base");
+    AddIWADPath(steampath, "/Strife");
+    free(steampath);
 }
 #endif // __MACOSX__
 #endif // !_WIN32

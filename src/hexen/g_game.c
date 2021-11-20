@@ -98,8 +98,9 @@ boolean lowres_turn;
 boolean shortticfix; // calculate lowres turning like doom
 boolean demoplayback;
 boolean demoextend;
-byte *  demobuffer, *demo_p, *demoend;
-boolean singledemo; // quit after playing a demo from cmdline
+boolean netdemo;
+byte *demobuffer, *demo_p, *demoend;
+boolean singledemo;             // quit after playing a demo from cmdline
 
 boolean precache = true; // if true, load all graphics at start
 
@@ -850,39 +851,84 @@ void G_Ticker(void) {
                   cmd->consistancy,
                   consistancy[i][buf]);
         }
-        if (players[i].mo)
-          consistancy[i][buf] = players[i].mo->x;
-        else
-          consistancy[i][buf] = rndindex;
-      }
     }
 
-  //
-  // check for special buttons
-  //
-  for (i = 0; i < maxplayers; i++)
-    if (playeringame[i]) {
-      if (players[i].cmd.buttons & BT_SPECIAL) {
-        switch (players[i].cmd.buttons & BT_SPECIALMASK) {
-        case BTS_PAUSE:
-          paused ^= 1;
-          if (paused) {
-            S_PauseSound();
-          } else {
-            S_ResumeSound();
-          }
-          break;
 
-        case BTS_SAVEGAME:
-          if (!savedescription[0]) {
-            if (netgame) {
-              M_StringCopy(savedescription,
-                           "NET GAME",
-                           sizeof(savedescription));
-            } else {
-              M_StringCopy(savedescription,
-                           "SAVE GAME",
-                           sizeof(savedescription));
+//
+// get commands, check consistancy, and build new consistancy check
+//
+    //buf = gametic%BACKUPTICS;
+    buf = (gametic / ticdup) % BACKUPTICS;
+
+    for (i = 0; i < maxplayers; i++)
+        if (playeringame[i])
+        {
+            cmd = &players[i].cmd;
+
+            memcpy(cmd, &netcmds[i], sizeof(ticcmd_t));
+
+            if (demoplayback)
+                G_ReadDemoTiccmd(cmd);
+            if (demorecording)
+                G_WriteDemoTiccmd(cmd);
+
+            if (netgame && !netdemo && !(gametic % ticdup))
+            {
+                if (gametic > BACKUPTICS
+                    && consistancy[i][buf] != cmd->consistancy)
+                {
+                    I_Error("consistency failure (%i should be %i)",
+                            cmd->consistancy, consistancy[i][buf]);
+                }
+                if (players[i].mo)
+                    consistancy[i][buf] = players[i].mo->x;
+                else
+                    consistancy[i][buf] = rndindex;
+            }
+        }
+
+//
+// check for special buttons
+//
+    for (i = 0; i < maxplayers; i++)
+        if (playeringame[i])
+        {
+            if (players[i].cmd.buttons & BT_SPECIAL)
+            {
+                switch (players[i].cmd.buttons & BT_SPECIALMASK)
+                {
+                    case BTS_PAUSE:
+                        paused ^= 1;
+                        if (paused)
+                        {
+                            S_PauseSound();
+                        }
+                        else
+                        {
+                            S_ResumeSound();
+                        }
+                        break;
+
+                    case BTS_SAVEGAME:
+                        if (!savedescription[0])
+                        {
+                            if (netgame)
+                            {
+                                M_StringCopy(savedescription, "NET GAME",
+                                             sizeof(savedescription));
+                            }
+                            else
+                            {
+                                M_StringCopy(savedescription, "SAVE GAME",
+                                             sizeof(savedescription));
+                            }
+                        }
+                        savegameslot =
+                            (players[i].cmd.
+                             buttons & BTS_SAVEMASK) >> BTS_SAVESHIFT;
+                        gameaction = ga_savegame;
+                        break;
+                }
             }
           }
           savegameslot =
@@ -1504,7 +1550,17 @@ void G_DoInitNew(void) {
 void G_InitNew(skill_t skill, int episode, int map) {
   int i;
 
-  if (paused) {
+    // Set up a bunch of globals
+    if (!demoextend)
+    {
+        // This prevents map-loading from interrupting a demo.
+        // demoextend is set back to false only if starting a new game or
+        // loading a saved one from the menu, and only during playback.
+        demorecording = false;
+        demoplayback = false;
+        netdemo = false;
+        usergame = true;            // will be set false if a demo
+    }
     paused = false;
     S_ResumeSound();
   }
@@ -1773,52 +1829,65 @@ void G_DeferedPlayDemo(const char *name) {
   gameaction  = ga_playdemo;
 }
 
-void G_DoPlayDemo(void) {
-  skill_t skill;
-  int     i, lumpnum, episode, map;
+void G_DoPlayDemo(void)
+{
+    skill_t skill;
+    int i, lumpnum, episode, map;
 
-  gameaction = ga_nothing;
-  lumpnum    = W_GetNumForName(defdemoname);
-  demobuffer = W_CacheLumpNum(lumpnum, PU_STATIC);
-  demo_p     = demobuffer;
-  skill      = *demo_p++;
-  episode    = *demo_p++;
-  map        = *demo_p++;
+    gameaction = ga_nothing;
+    lumpnum = W_GetNumForName(defdemoname);
+    demobuffer = W_CacheLumpNum(lumpnum, PU_STATIC);
+    demo_p = demobuffer;
+    skill = *demo_p++;
+    episode = *demo_p++;
+    map = *demo_p++;
 
-  // When recording we store some extra options inside the upper bits
-  // of the player 1 present byte. However, this is a non-vanilla extension.
-  // Note references to vvHeretic here; these are the extensions used by
-  // vvHeretic, which we're just reusing for Hexen demos too. There is no
-  // vvHexen.
-  if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_LONGTICS) != 0,
-                           lumpnum,
-                           "vvHeretic longtics demo")) {
-    longtics = true;
-  }
-  if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_RESPAWN) != 0,
-                           lumpnum,
-                           "vvHeretic -respawn header flag")) {
-    respawnparm = true;
-  }
-  if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_NOMONSTERS) != 0,
-                           lumpnum,
-                           "vvHeretic -nomonsters header flag")) {
-    nomonsters = true;
-  }
+    // When recording we store some extra options inside the upper bits
+    // of the player 1 present byte. However, this is a non-vanilla extension.
+    // Note references to vvHeretic here; these are the extensions used by
+    // vvHeretic, which we're just reusing for Hexen demos too. There is no
+    // vvHexen.
+    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_LONGTICS) != 0,
+                             lumpnum, "vvHeretic longtics demo"))
+    {
+        longtics = true;
+    }
+    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_RESPAWN) != 0,
+                             lumpnum, "vvHeretic -respawn header flag"))
+    {
+        respawnparm = true;
+    }
+    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_NOMONSTERS) != 0,
+                             lumpnum, "vvHeretic -nomonsters header flag"))
+    {
+        nomonsters = true;
+    }
 
-  for (i = 0; i < maxplayers; i++) {
-    playeringame[i] = (*demo_p++) != 0;
-    PlayerClass[i]  = *demo_p++;
-  }
+    for (i = 0; i < maxplayers; i++)
+    {
+        playeringame[i] = (*demo_p++) != 0;
+        PlayerClass[i] = *demo_p++;
+    }
 
-  // Initialize world info, etc.
-  G_StartNewInit();
+    if (playeringame[1] || M_ParmExists("-solo-net")
+                        || M_ParmExists("-netdemo"))
+    {
+        netgame = true;
+    }
 
-  precache = false; // don't spend a lot of time in loadlevel
-  G_InitNew(skill, episode, map);
-  precache     = true;
-  usergame     = false;
-  demoplayback = true;
+    // Initialize world info, etc.
+    G_StartNewInit();
+
+    precache = false;           // don't spend a lot of time in loadlevel
+    G_InitNew(skill, episode, map);
+    precache = true;
+    usergame = false;
+    demoplayback = true;
+
+    if (netgame)
+    {
+        netdemo = true;
+    }
 }
 
 /*
@@ -1850,13 +1919,24 @@ void G_TimeDemo(char *name) {
     PlayerClass[i]  = *demo_p++;
   }
 
-  G_InitNew(skill, episode, map);
-  starttime = I_GetTime();
+    if (playeringame[1] || M_ParmExists("-solo-net")
+                        || M_ParmExists("-netdemo"))
+    {
+        netgame = true;
+    }
 
-  usergame     = false;
-  demoplayback = true;
-  timingdemo   = true;
-  singletics   = true;
+    G_InitNew(skill, episode, map);
+    starttime = I_GetTime();
+
+    usergame = false;
+    demoplayback = true;
+    timingdemo = true;
+    singletics = true;
+
+    if (netgame)
+    {
+        netdemo = true;
+    }
 }
 
 /*
@@ -1869,29 +1949,32 @@ void G_TimeDemo(char *name) {
 ===================
 */
 
-boolean G_CheckDemoStatus(void) {
-  int endtime, realtics;
+boolean G_CheckDemoStatus(void)
+{
+    int endtime, realtics;
 
-  if (timingdemo) {
-    float fps;
-    endtime  = I_GetTime();
-    realtics = endtime - starttime;
-    fps      = ((float)gametic * TICRATE) / realtics;
-    I_Error("timed %i gametics in %i realtics (%f fps)",
-            gametic,
-            realtics,
-            fps);
-  }
+    if (timingdemo)
+    {
+        float fps;
+        endtime = I_GetTime();
+        realtics = endtime - starttime;
+        fps = ((float) gametic * TICRATE) / realtics;
+        I_Error("timed %i gametics in %i realtics (%f fps)",
+                gametic, realtics, fps);
+    }
 
-  if (demoplayback) {
-    if (singledemo)
-      I_Quit();
+    if (demoplayback)
+    {
+        if (singledemo)
+            I_Quit();
 
-    W_ReleaseLumpName(defdemoname);
-    demoplayback = false;
-    H2_AdvanceDemo();
-    return true;
-  }
+        W_ReleaseLumpName(defdemoname);
+        demoplayback = false;
+        netdemo = false;
+        netgame = false;
+        H2_AdvanceDemo();
+        return true;
+    }
 
   if (demorecording) {
     *demo_p++ = DEMOMARKER;

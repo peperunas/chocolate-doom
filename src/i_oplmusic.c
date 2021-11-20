@@ -2115,9 +2115,10 @@ static void I_OPL_ShutdownMusic(void) {
 
 // Initialize music subsystem
 
-static boolean I_OPL_InitMusic(void) {
-  char *            dmxoption;
-  opl_init_result_t chip_type;
+static boolean I_OPL_InitMusic(void)
+{
+    const char *dmxoption;
+    opl_init_result_t chip_type;
 
   OPL_SetSampleRate(snd_samplerate);
 

@@ -55,69 +55,42 @@ target_link_libraries("${PROGRAM_PREFIX}server" SDL2::SDL2main SDL2::net)
 # Source files used by the game binaries (chocolate-doom, etc.)
 
 set(GAME_SOURCE_FILES
-    aes_prng.c
-    aes_prng.h
-    d_event.c
-    d_event.h
-    doomkeys.h
-    doomtype.h
-    d_iwad.c
-    d_iwad.h
-    d_loop.c
-    d_loop.h
-    d_mode.c
-    d_mode.h
-    d_ticcmd.h
-    deh_str.c
-    deh_str.h
-    gusconf.c
-    gusconf.h
-    i_cdmus.c
-    i_cdmus.h
-    i_endoom.c
-    i_endoom.h
-    i_glob.c
-    i_glob.h
-    i_input.c
-    i_input.h
-    i_joystick.c
-    i_joystick.h
-    i_swap.h
-    i_midipipe.c
-    i_midipipe.h
+    aes_prng.c          aes_prng.h
+    d_event.c           d_event.h
+                        doomkeys.h
+                        doomtype.h
+    d_iwad.c            d_iwad.h
+    d_loop.c            d_loop.h
+    d_mode.c            d_mode.h
+                        d_ticcmd.h
+    deh_str.c           deh_str.h
+    gusconf.c           gusconf.h
+    i_cdmus.c           i_cdmus.h
+    i_endoom.c          i_endoom.h
+    i_glob.c            i_glob.h
+    i_input.c           i_input.h
+    i_joystick.c        i_joystick.h
+                        i_swap.h
     i_musicpack.c
     i_oplmusic.c
     i_pcsound.c
     i_sdlmusic.c
     i_sdlsound.c
-    i_sound.c
-    i_sound.h
-    i_timer.c
-    i_timer.h
-    i_video.c
-    i_video.h
-    i_videohr.c
-    i_videohr.h
-    midifile.c
-    midifile.h
-    mus2mid.c
-    mus2mid.h
-    m_bbox.c
-    m_bbox.h
-    m_cheat.c
-    m_cheat.h
-    m_config.c
-    m_config.h
-    m_controls.c
-    m_controls.h
-    m_fixed.c
-    m_fixed.h
-    net_client.c
-    net_client.h
-    net_common.c
-    net_common.h
-    net_dedicated.c
-    net_dedicated.h
+    i_sound.c           i_sound.h
+    i_timer.c           i_timer.h
+    i_video.c           i_video.h
+    i_videohr.c         i_videohr.h
+    i_winmusic.c        i_winmusic.h
+    midifile.c          midifile.h
+    mus2mid.c           mus2mid.h
+    m_bbox.c            m_bbox.h
+    m_cheat.c           m_cheat.h
+    m_config.c          m_config.h
+    m_controls.c        m_controls.h
+    m_fixed.c           m_fixed.h
+    net_client.c        net_client.h
+    net_common.c        net_common.h
+    net_dedicated.c     net_dedicated.h
     net_defs.h
     net_gui.c
     net_gui.h
@@ -202,6 +175,9 @@ if(SAMPLERATE_FOUND)
 endif()
 if(PNG_FOUND)
   list(APPEND EXTRA_LIBS PNG::PNG)
+endif()
+if(WIN32)
+	list(APPEND EXTRA_LIBS winmm)
 endif()
 
 add_custom_target(ropfuscator-dooms)

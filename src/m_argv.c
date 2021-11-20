@@ -111,7 +111,12 @@ static void LoadResponseFile(int argv_index, const char *filename) {
   newargc = 0;
   memset(newargv, 0, sizeof(char *) * MAXARGVS);
 
-  // Copy all the arguments in the list up to the response file
+    for (i=0; i<argv_index; ++i)
+    {
+        newargv[i] = myargv[i];
+        myargv[i] = NULL;
+        ++newargc;
+    }
 
   for (i = 0; i < argv_index; ++i) {
     newargv[i] = myargv[i];
@@ -132,13 +137,13 @@ static void LoadResponseFile(int argv_index, const char *filename) {
       break;
     }
 
-    // If the next argument is enclosed in quote marks, treat
-    // the contents as a single argument.  This allows long filenames
-    // to be specified.
+        if (infile[k] == '\"')
+        {
+            char *argstart;
+            // Skip the first character(")
+            ++k;
 
-    if (infile[k] == '\"') {
-      // Skip the first character(")
-      ++k;
+            argstart = &infile[k];
 
       newargv[newargc++] = &infile[k];
 
@@ -152,12 +157,16 @@ static void LoadResponseFile(int argv_index, const char *filename) {
         I_Error("Quotes unclosed in response file '%s'", filename);
       }
 
-      // Cut off the string at the closing quote
+            infile[k] = '\0';
+            ++k;
+            newargv[newargc++] = M_StringDuplicate(argstart);
+        }
+        else
+        {
+            char *argstart;
+            // Read in the next argument until a space is reached
 
-      infile[k] = '\0';
-      ++k;
-    } else {
-      // Read in the next argument until a space is reached
+            argstart = &infile[k];
 
       newargv[newargc++] = &infile[k];
 
@@ -167,21 +176,36 @@ static void LoadResponseFile(int argv_index, const char *filename) {
 
       // Cut off the end of the argument at the first space
 
-      infile[k] = '\0';
-
-      ++k;
+            ++k;
+            newargv[newargc++] = M_StringDuplicate(argstart);
+        }
     }
   }
 
   // Add arguments following the response file argument
 
-  for (i = argv_index + 1; i < myargc; ++i) {
-    newargv[newargc] = myargv[i];
-    ++newargc;
-  }
+    for (i=argv_index + 1; i<myargc; ++i)
+    {
+        newargv[newargc] = myargv[i];
+        myargv[i] = NULL;
+        ++newargc;
+    }
 
-  myargv = newargv;
-  myargc = newargc;
+    // Free any old strings in myargv which were not moved to newargv
+    for (i = 0; i < myargc; ++i)
+    {
+        if (myargv[i] != NULL)
+        {
+            free(myargv[i]);
+            myargv[i] = NULL;
+        }
+    }
+
+    free(myargv);
+    myargv = newargv;
+    myargc = newargc;
+
+    free(file);
 
 #if 0
     // Disabled - Vanilla Doom does not do this.
@@ -207,20 +231,29 @@ void M_FindResponseFile(void) {
     if (myargv[i][0] == '@') {
       LoadResponseFile(i, myargv[i] + 1);
     }
-  }
 
-  for (;;) {
-    //!
-    // @arg <filename>
-    //
-    // Load extra command line arguments from the given response file.
-    // Arguments read from the file will be inserted into the command
-    // line replacing this argument. A response file can also be loaded
-    // using the abbreviated syntax '@filename.rsp'.
-    //
-    i = M_CheckParmWithArgs("-response", 1);
-    if (i <= 0) {
-      break;
+    for (;;)
+    {
+        //!
+        // @arg <filename>
+        //
+        // Load extra command line arguments from the given response file.
+        // Arguments read from the file will be inserted into the command
+        // line replacing this argument. A response file can also be loaded
+        // using the abbreviated syntax '@filename.rsp'.
+        //
+        i = M_CheckParmWithArgs("-response", 1);
+        if (i <= 0)
+        {
+            break;
+        }
+        // Replace the -response argument so that the next time through
+        // the loop we'll ignore it. Since some parameters stop reading when
+        // an argument beginning with a '-' is encountered, we keep something
+        // that starts with a '-'.
+        free(myargv[i]);
+        myargv[i] = M_StringDuplicate("-_");
+        LoadResponseFile(i + 1, myargv[i + 1]);
     }
     // Replace the -response argument so that the next time through
     // the loop we'll ignore it. Since some parameters stop reading when

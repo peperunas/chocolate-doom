@@ -1,6 +1,5 @@
 //
-// Copyright(C) 1993-1996 Id Software, Inc.
-// Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021 Roman Fomin
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -12,26 +11,24 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
-//
 // DESCRIPTION:
-//	DOOM strings, by language.
-//
+//      Windows native MIDI
 
-#ifndef __DSTRINGS__
-#define __DSTRINGS__
+#ifdef _WIN32
 
-// All important printed strings.
+#ifndef __I_WINMUSIC__
+#define __I_WINMUSIC__
 
-#include "d_englsh.h"
+#include "doomtype.h"
 
-// Misc. other strings.
-#define SAVEGAMENAME "doomsav"
+boolean I_WIN_InitMusic(void);
+void I_WIN_PlaySong(boolean looping);
+void I_WIN_StopSong(void);
+void I_WIN_SetMusicVolume(int volume);
+boolean I_WIN_RegisterSong(char* filename);
+void I_WIN_UnRegisterSong(void);
+void I_WIN_ShutdownMusic(void);
 
-// QuitDOOM messages
-// 8 per each game type
-#define NUM_QUITMESSAGES 8
-
-extern const char *doom1_endmsg[];
-extern const char *doom2_endmsg[];
+#endif
 
 #endif
