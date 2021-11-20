@@ -197,10 +197,6 @@ set(EXTRA_LIBS
     pcsound
     opl)
 
-if(NOT USE_LIBC)
-  set(EXTRA_LIBS ${EXTRA_LIBS} rop)
-endif()
-
 if(SAMPLERATE_FOUND)
   list(APPEND EXTRA_LIBS samplerate::samplerate)
 endif()
@@ -226,12 +222,6 @@ else()
       get_filename_component(config_name ${config} NAME_WE)
       get_filename_component(libname ${library} NAME_WE)
 
-      # ugly but needed because the generator expressions are not expanded at
-      # this stage
-      if(library STREQUAL $<TARGET_FILE:rop>)
-        set(libname "librop")
-      endif()
-
       add_executable(
         "${PROGRAM_PREFIX}doom-ropfuscated-${config_name}-${libname}"
         ${SOURCE_FILES_WITH_DEH})
@@ -252,12 +242,6 @@ foreach(config ${ROPF_CONFIGURATION_FILES})
   foreach(library ${ROPFUSCATOR_LIBRARIES})
     get_filename_component(config_name ${config} NAME_WE)
     get_filename_component(libname ${library} NAME_WE)
-
-    # ugly but needed because the generator expressions are not expanded at this
-    # stage
-    if(library STREQUAL $<TARGET_FILE:rop>)
-      set(libname "librop")
-    endif()
 
     target_include_directories(
       "${PROGRAM_PREFIX}doom-ropfuscated-${config_name}-${libname}"
